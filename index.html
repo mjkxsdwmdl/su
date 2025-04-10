@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日挑战</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #fff;
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+            transition: background 0.5s;
+        }
+        
+        /* 谜题部分样式 */
+        #header-image {
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 0 20px rgba(255, 64, 129, 0.5);
+            transition: transform 0.3s;
+        }
+        
+        #header-image:hover {
+            transform: scale(1.02);
+        }
+        
+         #number-puzzle {
+            font-size: 24px;
+            color: #ff4081;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 30px;
+            display: inline-block;
+            margin: 10px 0;
+            border: 2px dashed #ff4081;
+        }
+        
+        .input-group {
+            margin: 25px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+         #answer-input {
+            padding: 12px 25px;
+            font-size: 18px;
+            width: 250px;
+            border: 2px solid #4CAF50;
+            border-radius: 30px;
+            margin-right: 10px;
+        }
+        
+        #submit-btn {
+            padding: 12px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        #submit-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        #error-msg {
+            height: 30px;
+            font-size: 20px;
+            color: #ff4081;
+            margin: 10px 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .show-error {
+            opacity: 1 !important;
+        }
+        
+        .shake {
+            animation: shake 0.4s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        #video-hint {
+            display: none;
+            max-width: 800px;
+            margin: 30px auto;
+            background: rgba(255, 64, 129, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            animation: fadeIn 0.5s;
+            border: 1px solid #ff4081;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 生日祝福部分样式 */
+        #birthday-section {
+            display: none;
+            margin-top: 50px;
+            animation: fadeIn 1s;
+        }
+        
+        #message {
+            color: #ff4081;
+            font-size: 3em;
+            text-shadow: 0 0 20px #fff;
+            margin: 30px 0;
+            animation: glow 2s infinite;
+        }
+        
+        .bilibili-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255,215,0,0.5);
+            transition: transform 0.3s;
+        }
+        
+        .bilibili-container:hover {
+            transform: scale(1.02);
+        }
+        
+        .bilibili-iframe {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+        }
+        
+        .bilibili-iframe iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px #ff4081; }
+            50% { text-shadow: 0 0 40px #fff, 0 0 60px #ff4081; }
+        }
+        
+        /* 加载动画 */
+        .loader {
+            display: none;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #ff4081;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            #message {
+                font-size: 2em;
+            }
+            
+            #answer-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            #submit-btn {
+                width: 100%;
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 谜题部分 -->
+    <div id="puzzle-section">
+        <img id="header-image" src="https://i.ibb.co/fzG4hVJR/lzy.jpg" alt="谜题图片">
+        
+        <div id="number-puzzle">41-3-41-39-25-7-18-35-17-10</div>
+        
+        <div class="input-group">
+            <input type="text" id="answer-input" placeholder="请输入答案" autocomplete="off">
+            <button id="submit-btn">提交答案</button>
+        </div>
+        
+        <div id="error-msg">阿尼哟~</div>
+        <div class="loader" id="loader"></div>
+       
+        <div id="video-hint">
+            <h3 style="color:#ff4081; margin-bottom:15px;">💡来!提示来!来!</h3>
+            <div class="bilibili-iframe">
+                <iframe 
+                    src="//player.bilibili.com/player.html?bvid=BV1GFmHYgEtr&high_quality=1&danmaku=0"
+                    frameborder="0"
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 生日祝福部分 (初始隐藏) -->
+    <div id="birthday-section">
+        <h1 id="message">🎂 Happy Wigeum's day! 🎉</h1>
+        
+        <div class="bilibili-container">
+            <div class="bilibili-iframe">
+                <iframe 
+                    src="//player.bilibili.com/player.html?bvid=BV1MbdKYCEzv&high_quality=1&danmaku=0"
+                    allowfullscreen
+                    scrolling="no"
+                    frameborder="0"
+                    sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            correctAnswer: "tatachimmy",
+            maxAttempts: 5
+        };
+
+        let attempts = 0;
+        let fireworksCount = 0;
+        let fireworksInterval;
+        const answerInput = document.getElementById('answer-input');
+        const errorMsg = document.getElementById('error-msg');
+        const videoHint = document.getElementById('video-hint');
+        const puzzleSection = document.getElementById('puzzle-section');
+        const birthdaySection = document.getElementById('birthday-section');
+        const loader = document.getElementById('loader');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function showError() {
+            errorMsg.classList.add('show-error');
+            setTimeout(() => {
+                errorMsg.classList.remove('show-error');
+            }, 1000);
+            
+            answerInput.classList.add('shake');
+            answerInput.style.borderColor = '#ff4081';
+            setTimeout(() => {
+                answerInput.classList.remove('shake');
+                answerInput.style.borderColor = '#4CAF50';
+            }, 400);
+        }
+
+        function triggerFireworks() {
+            // 心形礼花
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 },
+                shapes: ['heart'],
+                colors: ['#ff4081'],
+                scalar: 1.5
+            });
+            
+            // 星形礼花
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    spread: 100,
+                    origin: { x: 0.3 },
+                    shapes: ['star'],
+                    colors: ['#FFD700'],
+                    scalar: 1.8
+                });
+            }, 300);
+
+            // 传统圆形礼花
+            confetti({
+                particleCount: 100,
+                spread: 100,
+                colors: ['#eae5e3', '#bff176', '#eaff56'],
+                scalar: 1.2
+            });
+        }
+
+        function startFireworksSequence() {
+            // 清除之前的定时器
+            if (fireworksInterval) {
+                clearInterval(fireworksInterval);
+            }
+            
+            // 立即触发第一次
+            triggerFireworks();
+            fireworksCount = 1;
+            
+            // 设置间隔触发剩余4次
+            fireworksInterval = setInterval(() => {
+                if (fireworksCount < 5) {
+                    triggerFireworks();
+                    fireworksCount++;
+                } else {
+                    clearInterval(fireworksInterval);
+                }
+            }, 2000);
+        }
+
+        function checkAnswer() {
+            const userAnswer = answerInput.value.trim().toLowerCase();
+            
+            if (!userAnswer) {
+                showError();
+                errorMsg.textContent = "请输入答案哦~";
+                return;
+            }
+            
+            // 显示加载动画
+            submitBtn.disabled = true;
+            loader.style.display = 'block';
+            
+            // 模拟网络请求延迟
+            setTimeout(() => {
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+                
+                if(userAnswer === config.correctAnswer) {
+                    // 显示生日祝福部分，隐藏谜题部分
+                    puzzleSection.style.display = 'none';
+                    birthdaySection.style.display = 'block';
+                    
+                    // 触发礼花效果
+                    startFireworksSequence();
+                    
+                    // 滚动到生日祝福部分
+                    setTimeout(() => {
+                        birthdaySection.scrollIntoView({ behavior: 'smooth' });
+                    }, 300);
+                    
+                    // 更改页面背景
+                    document.body.style.background = "linear-gradient(135deg, #000000 0%, #1a1a2e 100%)";
+                } else {
+                    attempts++;
+                    errorMsg.textContent = attempts < config.maxAttempts 
+                        ? `阿尼哟~ (还剩 ${config.maxAttempts - attempts} 次尝试)` 
+                        : "阿尼哟~ 答案错误";
+                    showError();
+                    
+                    if(attempts === config.maxAttempts) {
+                        videoHint.style.display = 'block';
+                        setTimeout(() => {
+                            videoHint.scrollIntoView({ behavior: 'smooth' });
+                        }, 300);
+                    }
+                }
+            }, 800);
+        }
+        
+        // 自动播放检测
+        document.addEventListener('click', () => {
+            const iframe = document.querySelector('.bilibili-container iframe');
+            if (iframe && !iframe.src.includes('autoplay=1')) {
+                iframe.src += '&autoplay=1';
+            }
+        }, { once: true });
+        
+        // 绑定事件
+        submitBtn.addEventListener('click', checkAnswer);
+        answerInput.addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') checkAnswer();
+        });
+        
+        // 初始化聚焦输入框
+        window.addEventListener('load', () => {
+            answerInput.focus();
+        });
+    </script>
+</body>
+</html>
